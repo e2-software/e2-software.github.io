@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>e2.software</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+        }
+        
+        .logo {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 800px;
+        }
+                
+        img {
+          width: 25%;
+        }
+        
+        
+        .mail {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .mail:after {
+          content: attr(data-name) "@" attr(data-domain) "." attr(data-tld); 
+        }
+	</style>
+</head>
+<body>
+  <div class="logo">
+    <img src="e2-logo.png">
+  </div>
+  <div>
+      <a href="#" class="mail"
+         data-name="info"
+         data-domain="e2"
+         data-tld="software"
+         onclick="window.location.href = 'mailto:' + this.dataset.name + '@' + this.dataset.domain + '.' + this.dataset.tld; return false;"></a>
+  </div>
+</body>
+</html>
