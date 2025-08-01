@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elvira's Eenhoorn Spel</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(45deg, #ff69b4, #9370db, #4169e1, #00ced1);
+            background-size: 400% 400%;
+            animation: rainbowMove 8s ease infinite;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        @keyframes rainbowMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin: 20px 0;
+            font-size: 2.5em;
+        }
+
+        #gameCanvas {
+            border: 5px solid #fff;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.1);
+        }
+
+        #gameInfo {
+            display: flex;
+            gap: 30px;
+            margin: 20px 0;
+            color: white;
+            font-size: 1.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        #startButton {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            background: linear-gradient(45deg, #ff69b4, #9370db);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        #startButton:hover {
+            transform: scale(1.05);
+        }
+
+        #instructions {
+            color: white;
+            text-align: center;
+            max-width: 600px;
+            margin: 20px;
+            font-size: 1.2em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <h1>🦄 Elvira's Eenhoorn Spel 🌈</h1>
+    
+    <div id="gameInfo">
+        <div>Score: <span id="score">0</span></div>
+        <div>Gevangen: <span id="caught">0</span></div>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <button id="startButton" onclick="startGame()">Start Spel</button>
+    
+    <div id="instructions">
+        <p>🦄 Beweeg je eenhoorn met de pijltjestoetsen!</p>
+        <p>🔢 Vang de springende nummers om punten te scoren!</p>
+        <p>🌟 Hoe meer nummers je vangt, hoe hoger je score!</p>
+    </div>
+
+    <audio id="backgroundMusic" loop>
+        <source src="background.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        
+        let gameRunning = false;
+        let score = 0;
+        let caught = 0;
+        
+        const unicorn = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            width: 60,
+            height: 60,
+            speed: 5
+        };
+        
+        const numbers = [];
+        const keys = {};
+        
+        class Number {
+            constructor() {
+                this.value = Math.floor(Math.random() * 10);
+                this.x = Math.random() * (canvas.width - 40);
+                this.y = Math.random() * (canvas.height - 40);
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.width = 40;
+                this.height = 40;
+                this.color = this.getRandomColor();
+            }
+            
+            getRandomColor() {
+                const colors = ['#ff69b4', '#9370db', '#4169e1', '#00ced1', '#ffd700', '#ff6347'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                if (this.x <= 0 || this.x >= canvas.width - this.width) {
+                    this.vx = -this.vx;
+                    this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
+                }
+                
+                if (this.y <= 0 || this.y >= canvas.height - this.height) {
+                    this.vy = -this.vy;
+                    this.y = Math.max(0, Math.min(canvas.height - this.height, this.y));
+                }
+            }
+            
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 24px Comic Sans MS';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.value, this.x + this.width/2, this.y + this.height/2 + 8);
+            }
+        }
+        
+        function drawUnicorn() {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(unicorn.x, unicorn.y, unicorn.width, unicorn.height);
+            
+            ctx.fillStyle = '#ff69b4';
+            ctx.beginPath();
+            ctx.moveTo(unicorn.x + unicorn.width/2, unicorn.y);
+            ctx.lineTo(unicorn.x + unicorn.width/2 - 10, unicorn.y - 15);
+            ctx.lineTo(unicorn.x + unicorn.width/2 + 10, unicorn.y - 15);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(unicorn.x + 15, unicorn.y + 15, 5, 5);
+            ctx.fillRect(unicorn.x + 40, unicorn.y + 15, 5, 5);
+            
+            ctx.font = 'bold 16px Comic Sans MS';
+            ctx.textAlign = 'center';
+            ctx.fillText('🦄', unicorn.x + unicorn.width/2, unicorn.y + unicorn.height/2 + 5);
+        }
+        
+        function handleInput() {
+            if (keys['ArrowUp'] && unicorn.y > 0) {
+                unicorn.y -= unicorn.speed;
+            }
+            if (keys['ArrowDown'] && unicorn.y < canvas.height - unicorn.height) {
+                unicorn.y += unicorn.speed;
+            }
+            if (keys['ArrowLeft'] && unicorn.x > 0) {
+                unicorn.x -= unicorn.speed;
+            }
+            if (keys['ArrowRight'] && unicorn.x < canvas.width - unicorn.width) {
+                unicorn.x += unicorn.speed;
+            }
+        }
+        
+        function checkCollisions() {
+            for (let i = numbers.length - 1; i >= 0; i--) {
+                const num = numbers[i];
+                if (unicorn.x < num.x + num.width &&
+                    unicorn.x + unicorn.width > num.x &&
+                    unicorn.y < num.y + num.height &&
+                    unicorn.y + unicorn.height > num.y) {
+                    
+                    playPickupSound();
+                    score += num.value * 10;
+                    caught++;
+                    numbers.splice(i, 1);
+                    
+                    updateScore();
+                }
+            }
+        }
+        
+        function playPickupSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
+        
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('caught').textContent = caught;
+        }
+        
+        function spawnNumber() {
+            if (numbers.length < 8) {
+                numbers.push(new Number());
+            }
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            handleInput();
+            
+            for (const num of numbers) {
+                num.update();
+                num.draw();
+            }
+            
+            drawUnicorn();
+            checkCollisions();
+            
+            if (Math.random() < 0.02) {
+                spawnNumber();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function startGame() {
+            if (gameRunning) return;
+            
+            gameRunning = true;
+            score = 0;
+            caught = 0;
+            numbers.length = 0;
+            
+            unicorn.x = canvas.width / 2;
+            unicorn.y = canvas.height / 2;
+            
+            updateScore();
+            
+            backgroundMusic.play().catch(e => console.log('Audio play failed:', e));
+            
+            for (let i = 0; i < 5; i++) {
+                numbers.push(new Number());
+            }
+            
+            gameLoop();
+            
+            document.getElementById('startButton').textContent = 'Spel Loopt!';
+            setTimeout(() => {
+                document.getElementById('startButton').textContent = 'Start Spel';
+            }, 2000);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+        
+        for (let i = 0; i < 3; i++) {
+            numbers.push(new Number());
+        }
+        
+        function initialDraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (const num of numbers) {
+                num.draw();
+            }
+            
+            drawUnicorn();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillRect(canvas.width/2 - 150, canvas.height/2 - 50, 300, 100);
+            ctx.strokeStyle = '#ff69b4';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(canvas.width/2 - 150, canvas.height/2 - 50, 300, 100);
+            
+            ctx.fillStyle = '#9370db';
+            ctx.font = 'bold 24px Comic Sans MS';
+            ctx.textAlign = 'center';
+            ctx.fillText('Klik op "Start Spel"', canvas.width/2, canvas.height/2 - 10);
+            ctx.fillText('om te beginnen!', canvas.width/2, canvas.height/2 + 20);
+        }
+        
+        initialDraw();
+    </script>
+</body>
+</html>
