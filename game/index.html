@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evan's Astro Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 20px #00ffff;
+            background: linear-gradient(180deg, #000428 0%, #004e92 100%);
+        }
+
+        #ui {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            color: #00ffff;
+            font-size: 18px;
+            z-index: 10;
+        }
+
+        #mathModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #mathContent {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
+            border: 2px solid #00ffff;
+        }
+
+        #mathQuestion {
+            font-size: 28px;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        #mathInput {
+            font-size: 24px;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            text-align: center;
+            margin: 10px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        #mathSubmit {
+            font-size: 20px;
+            padding: 12px 24px;
+            background: #00ffff;
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+
+        #mathSubmit:hover {
+            background: #ffffff;
+            transform: scale(1.05);
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #00ffff;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        #gameTitle {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 60px;
+            font-weight: bold;
+            font-family: 'Arial Black', Arial, sans-serif;
+            color: #00ffff;
+            text-shadow: 
+                0 0 5px #00ffff,
+                0 0 10px #00aaaa,
+                3px 3px 0px #004466,
+                6px 6px 0px #002233,
+                9px 9px 0px #001122;
+            letter-spacing: 3px;
+            z-index: 15;
+            background: linear-gradient(45deg, #00ffff, #ffffff, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 
+                    0 0 5px #00ffff,
+                    0 0 10px #00aaaa,
+                    3px 3px 0px #004466,
+                    6px 6px 0px #002233,
+                    9px 9px 0px #001122;
+            }
+            to {
+                text-shadow: 
+                    0 0 8px #00ffff,
+                    0 0 15px #00aaaa,
+                    3px 3px 0px #004466,
+                    6px 6px 0px #002233,
+                    9px 9px 0px #001122;
+            }
+        }
+
+        #credits {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #888888;
+            text-align: center;
+            font-size: 10px;
+            line-height: 1.2;
+            max-width: 600px;
+        }
+
+        #credits a {
+            color: #00aaaa;
+            text-decoration: none;
+        }
+
+        #credits a:hover {
+            color: #00ffff;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div id="gameTitle">Evan's Astro Game</div>
+    
+    <div id="ui">
+        <div>Score: <span id="score">0</span></div>
+        <div>Levens: <span id="lives">3</span></div>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <div id="instructions">
+        Pijltjestoetsen: Bewegen | Spatiebalk: Schieten | Los rekenopgaven op om door te spelen!
+    </div>
+
+    <div id="credits">
+        Music Title: Give Me a Smile <a href="https://www.youtube.com/watch?v=F7TEe-fYKac" target="_blank">www.youtube.com/watch?v=F7TEe-fYKac</a><br>
+        Released by: Free Music <a href="https://soundcloud.com/fm_freemusic" target="_blank">https://soundcloud.com/fm_freemusic</a><br>
+        Music promoted by <a href="https://www.chosic.com/free-music/all/" target="_blank">https://www.chosic.com/free-music/all/</a><br>
+        Creative Commons Attribution 3.0 Unported License<br>
+        <a href="https://creativecommons.org/licenses/by/3.0/deed.en_US" target="_blank">https://creativecommons.org/licenses/by/3.0/deed.en_US</a>
+    </div>
+
+    <div id="mathModal">
+        <div id="mathContent">
+            <div id="mathQuestion"></div>
+            <input type="number" id="mathInput" placeholder="Jouw antwoord">
+            <br>
+            <button id="mathSubmit">Verzend Antwoord</button>
+            <div id="mathFeedback" style="margin-top: 15px; font-size: 18px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Audio setup
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function createTone(frequency, duration, type = 'sine', volume = 0.1) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playShootSound() {
+            createTone(800, 0.1, 'square', 0.05);
+            setTimeout(() => createTone(600, 0.05, 'square', 0.03), 50);
+        }
+
+        function playHitSound() {
+            createTone(200, 0.2, 'sawtooth', 0.1);
+            setTimeout(() => createTone(150, 0.15, 'sawtooth', 0.08), 100);
+        }
+
+        function playCorrectSound() {
+            createTone(523, 0.2, 'sine', 0.1); // C
+            setTimeout(() => createTone(659, 0.2, 'sine', 0.1), 200); // E
+            setTimeout(() => createTone(784, 0.3, 'sine', 0.1), 400); // G
+        }
+
+        function playWrongSound() {
+            createTone(200, 0.5, 'sawtooth', 0.08);
+        }
+
+        // Background music
+        let backgroundMusic = null;
+        let backgroundMusicPlaying = false;
+        
+        function startBackgroundMusic() {
+            if (backgroundMusicPlaying || backgroundMusic) return;
+            
+            backgroundMusic = new Audio('background.mp3');
+            backgroundMusic.loop = true;
+            backgroundMusic.volume = 0.3;
+            
+            backgroundMusic.play().then(() => {
+                backgroundMusicPlaying = true;
+            }).catch((error) => {
+                console.log('Could not play background music:', error);
+            });
+        }
+
+        // Game state
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = {
+            player: {
+                x: 50,
+                y: canvas.height / 2,
+                width: 40,
+                height: 40,
+                velocityX: 0,
+                velocityY: 0,
+                speed: 5,
+                color: '#00ffff'
+            },
+            bullets: [],
+            enemies: [],
+            particles: [],
+            score: 0,
+            lives: 3,
+            keys: {},
+            lastMathTime: Date.now(),
+            mathInterval: 10000, // 10 seconds
+            gameRunning: true,
+            enemySpawnTimer: 0
+        };
+
+        // Input handling
+        document.addEventListener('keydown', (e) => {
+            gameState.keys[e.code] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                shootBullet();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            gameState.keys[e.code] = false;
+        });
+
+        // Player movement
+        function updatePlayer() {
+            if (gameState.keys['ArrowLeft'] || gameState.keys['KeyA']) {
+                gameState.player.velocityX = -gameState.player.speed;
+            } else if (gameState.keys['ArrowRight'] || gameState.keys['KeyD']) {
+                gameState.player.velocityX = gameState.player.speed;
+            } else {
+                gameState.player.velocityX *= 0.8;
+            }
+
+            if (gameState.keys['ArrowUp'] || gameState.keys['KeyW']) {
+                gameState.player.velocityY = -gameState.player.speed;
+            } else if (gameState.keys['ArrowDown'] || gameState.keys['KeyS']) {
+                gameState.player.velocityY = gameState.player.speed;
+            } else {
+                gameState.player.velocityY *= 0.8;
+            }
+
+            gameState.player.x += gameState.player.velocityX;
+            gameState.player.y += gameState.player.velocityY;
+
+            // Keep player in bounds
+            gameState.player.x = Math.max(0, Math.min(canvas.width - gameState.player.width, gameState.player.x));
+            gameState.player.y = Math.max(0, Math.min(canvas.height - gameState.player.height, gameState.player.y));
+        }
+
+        // Bullet system
+        function shootBullet() {
+            gameState.bullets.push({
+                x: gameState.player.x + gameState.player.width,
+                y: gameState.player.y + gameState.player.height / 2,
+                width: 8,
+                height: 4,
+                velocityX: 10,
+                color: '#ffff00'
+            });
+            playShootSound();
+        }
+
+        function updateBullets() {
+            gameState.bullets = gameState.bullets.filter(bullet => {
+                bullet.x += bullet.velocityX;
+                return bullet.x < canvas.width;
+            });
+        }
+
+        // Enemy system
+        function spawnEnemy() {
+            gameState.enemies.push({
+                x: canvas.width,
+                y: Math.random() * (canvas.height - 30),
+                width: 30,
+                height: 30,
+                velocityX: -2 - Math.random() * 3,
+                color: '#ff4444',
+                health: 1
+            });
+        }
+
+        function updateEnemies() {
+            gameState.enemySpawnTimer++;
+            if (gameState.enemySpawnTimer > 120) { // Spawn every 2 seconds at 60fps
+                spawnEnemy();
+                gameState.enemySpawnTimer = 0;
+            }
+
+            gameState.enemies = gameState.enemies.filter(enemy => {
+                enemy.x += enemy.velocityX;
+                return enemy.x > -enemy.width && enemy.health > 0;
+            });
+        }
+
+        // Collision detection
+        function checkCollisions() {
+            // Bullet-enemy collisions
+            gameState.bullets.forEach((bullet, bulletIndex) => {
+                gameState.enemies.forEach((enemy, enemyIndex) => {
+                    if (bullet.x < enemy.x + enemy.width &&
+                        bullet.x + bullet.width > enemy.x &&
+                        bullet.y < enemy.y + enemy.height &&
+                        bullet.y + bullet.height > enemy.y) {
+                        
+                        // Create explosion particles
+                        for (let i = 0; i < 5; i++) {
+                            gameState.particles.push({
+                                x: enemy.x + enemy.width / 2,
+                                y: enemy.y + enemy.height / 2,
+                                velocityX: (Math.random() - 0.5) * 10,
+                                velocityY: (Math.random() - 0.5) * 10,
+                                life: 30,
+                                color: '#ffaa00'
+                            });
+                        }
+
+                        gameState.bullets.splice(bulletIndex, 1);
+                        gameState.enemies.splice(enemyIndex, 1);
+                        gameState.score += 10;
+                        document.getElementById('score').textContent = gameState.score;
+                        playHitSound();
+                    }
+                });
+            });
+
+            // Player-enemy collisions
+            gameState.enemies.forEach((enemy, index) => {
+                if (gameState.player.x < enemy.x + enemy.width &&
+                    gameState.player.x + gameState.player.width > enemy.x &&
+                    gameState.player.y < enemy.y + enemy.height &&
+                    gameState.player.y + gameState.player.height > enemy.y) {
+                    
+                    gameState.enemies.splice(index, 1);
+                    gameState.lives--;
+                    document.getElementById('lives').textContent = gameState.lives;
+                    
+                    if (gameState.lives <= 0) {
+                        gameOver();
+                    }
+                }
+            });
+        }
+
+        // Particle system
+        function updateParticles() {
+            gameState.particles = gameState.particles.filter(particle => {
+                particle.x += particle.velocityX;
+                particle.y += particle.velocityY;
+                particle.life--;
+                return particle.life > 0;
+            });
+        }
+
+        // Math challenge system
+        function showMathChallenge() {
+            const num1 = Math.floor(Math.random() * 10) + 1;
+            const num2 = Math.floor(Math.random() * 10) + 1;
+            const answer = num1 * num2;
+            
+            document.getElementById('mathQuestion').textContent = `${num1} × ${num2} = ?`;
+            document.getElementById('mathInput').value = '';
+            document.getElementById('mathFeedback').textContent = '';
+            document.getElementById('mathModal').style.display = 'flex';
+            
+            gameState.gameRunning = false;
+            
+            const handleAnswer = () => {
+                const userAnswer = parseInt(document.getElementById('mathInput').value);
+                if (userAnswer === answer) {
+                    document.getElementById('mathFeedback').textContent = 'Correct! +50 punten!';
+                    document.getElementById('mathFeedback').style.color = '#00ff00';
+                    gameState.score += 50;
+                    document.getElementById('score').textContent = gameState.score;
+                    playCorrectSound();
+                    
+                    setTimeout(() => {
+                        document.getElementById('mathModal').style.display = 'none';
+                        gameState.gameRunning = true;
+                        gameState.lastMathTime = Date.now();
+                    }, 1500);
+                } else {
+                    document.getElementById('mathFeedback').textContent = `Fout! Het antwoord was ${answer}. Probeer opnieuw!`;
+                    document.getElementById('mathFeedback').style.color = '#ff4444';
+                    document.getElementById('mathInput').value = '';
+                    playWrongSound();
+                }
+            };
+            
+            document.getElementById('mathSubmit').onclick = handleAnswer;
+            document.getElementById('mathInput').onkeypress = (e) => {
+                if (e.key === 'Enter') handleAnswer();
+            };
+            
+            setTimeout(() => {
+                document.getElementById('mathInput').focus();
+            }, 100);
+        }
+
+        // Rendering
+        function drawPlayer() {
+            ctx.fillStyle = gameState.player.color;
+            ctx.fillRect(gameState.player.x, gameState.player.y, gameState.player.width, gameState.player.height);
+            
+            // Draw astronaut details
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(gameState.player.x + 10, gameState.player.y + 5, 20, 20); // helmet
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(gameState.player.x + 15, gameState.player.y + 10, 10, 5); // visor
+        }
+
+        function drawBullets() {
+            gameState.bullets.forEach(bullet => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+        }
+
+        function drawEnemies() {
+            gameState.enemies.forEach(enemy => {
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                
+                // Add alien details
+                ctx.fillStyle = '#aa0000';
+                ctx.fillRect(enemy.x + 5, enemy.y + 5, 20, 20);
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(enemy.x + 10, enemy.y + 10, 4, 4);
+                ctx.fillRect(enemy.x + 16, enemy.y + 10, 4, 4);
+            });
+        }
+
+        function drawParticles() {
+            gameState.particles.forEach(particle => {
+                ctx.fillStyle = particle.color;
+                ctx.globalAlpha = particle.life / 30;
+                ctx.fillRect(particle.x, particle.y, 3, 3);
+                ctx.globalAlpha = 1;
+            });
+        }
+
+        function gameOver() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#ff4444';
+            ctx.font = '48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('SPEL VOORBIJ', canvas.width / 2, canvas.height / 2 - 50);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '24px Arial';
+            ctx.fillText(`Eindsccore: ${gameState.score}`, canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillText('Ververs de pagina om opnieuw te spelen', canvas.width / 2, canvas.height / 2 + 60);
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (!gameState.gameRunning) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update game objects
+            updatePlayer();
+            updateBullets();
+            updateEnemies();
+            updateParticles();
+            checkCollisions();
+
+            // Draw game objects
+            drawPlayer();
+            drawBullets();
+            drawEnemies();
+            drawParticles();
+
+            // Check for math challenge
+            if (Date.now() - gameState.lastMathTime > gameState.mathInterval) {
+                showMathChallenge();
+            }
+
+            if (gameState.lives > 0) {
+                requestAnimationFrame(gameLoop);
+            } else {
+                gameOver();
+            }
+        }
+
+        // Create animated stars background
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = star.style.height = Math.random() * 3 + 1 + 'px';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Initialize game
+        createStars();
+        
+        // Start background music on first user interaction
+        document.addEventListener('click', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            startBackgroundMusic();
+        }, { once: true });
+        
+        document.addEventListener('keydown', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            startBackgroundMusic();
+        }, { once: true });
+        
+        gameLoop();
+    </script>
+</body>
+</html>
